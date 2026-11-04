@@ -1,0 +1,20 @@
+MonitorBar — Apple Silicon, macOS 14 ou superior
+
+Arraste MonitorBar.app para Applications e abra o app.
+Procure o ícone de duas telas na barra de menus, no topo do macOS.
+
+Esta versão tem assinatura local (ad hoc), sem notarização da Apple.
+Se o Gatekeeper bloquear a abertura, após tentar abrir o app, acesse
+Ajustes do Sistema > Privacidade e Segurança > Abrir Mesmo Assim.
+Não é preciso desativar o Gatekeeper nem pagar uma conta Developer.
+
+Brilho DDC depende do monitor, cabo e adaptador. Ative DDC/CI no menu
+físico do monitor se disponível. Dimmer por software é uma alternativa
+opcional; ele não altera a iluminação física e desaparece ao sair do app.
+
+Evite ajustar o mesmo monitor simultaneamente em outros utilitários.
+Resolução, disposição e espelhamento têm confirmação de 20 segundos.
+Sem confirmar, o app tenta restaurar a configuração anterior.
+
+AirPlay, Chromecast e resoluções personalizadas não fazem parte desta versão.
+Código-fonte, instruções de build e limitações: README.md do projeto.

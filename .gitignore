@@ -1,0 +1,33 @@
+# Swift Package Manager e builds
+.build/
+.swiftpm/
+build/
+DerivedData/
+
+# Aplicativos e instaladores gerados
+dist/
+*.app/
+*.dmg
+*.dSYM/
+
+# Preferências locais do Xcode
+xcuserdata/
+*.xcuserstate
+
+# Arquivos do macOS
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+# Configuração local e credenciais
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.mobileprovision
+
+# Cache de scripts Python
+__pycache__/
+*.py[cod]
