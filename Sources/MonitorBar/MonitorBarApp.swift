@@ -17,7 +17,7 @@ struct MonitorBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene {
         MenuBarExtra("MonitorBar", systemImage: "display.2") {
-            QuickPanel(launchAtLogin: delegate.launchAtLogin, store: delegate.store, organize: { delegate.windows.showOrganizer() })
+            QuickPanel(launchAtLogin: delegate.launchAtLogin, store: delegate.store, updater: delegate.updater, organize: { delegate.windows.showOrganizer() })
                 .onAppear { Task { await delegate.store.refresh() } }
         }.menuBarExtraStyle(.window)
     }
@@ -30,8 +30,8 @@ struct MonitorBarApp: App {
         for display in store.displays { store.brightness[display.id] = BrightnessState(value: display.builtIn ? 0.65 : 0.8, method: .native) }
         let output = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("dist")
         try? FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-        save(QuickPanel(launchAtLogin: LaunchAtLogin(), store: store, organize: {}), size: CGSize(width: 390, height: 740), to: output.appendingPathComponent("preview-menu.png"))
-        save(QuickPanel(launchAtLogin: LaunchAtLogin(), store: store, organize: {}), size: CGSize(width: 390, height: 740), to: output.appendingPathComponent("preview-menu-light.png"), scheme: .light)
+        save(QuickPanel(launchAtLogin: LaunchAtLogin(), store: store, updater: nil, organize: {}), size: CGSize(width: 390, height: 740), to: output.appendingPathComponent("preview-menu.png"))
+        save(QuickPanel(launchAtLogin: LaunchAtLogin(), store: store, updater: nil, organize: {}), size: CGSize(width: 390, height: 740), to: output.appendingPathComponent("preview-menu-light.png"), scheme: .light)
         save(ArrangementView(store: store), size: CGSize(width: 880, height: 640), to: output.appendingPathComponent("preview-arrangement.png"))
     }
     static func save<V: View>(_ view: V, size: CGSize, to url: URL, scheme: ColorScheme = .dark) {
@@ -48,6 +48,7 @@ struct MonitorBarApp: App {
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
     let store = MonitorStore(demo: CommandLine.arguments.contains("--demo") || CommandLine.arguments.contains("--render-preview"))
     let launchAtLogin = LaunchAtLogin()
+    let updater = Updater()
     lazy var windows = WindowCoordinator(store: store)
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)

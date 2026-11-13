@@ -79,6 +79,12 @@ import MonitorCore
             let values = await hardware.probe(fresh)
             guard generation == probeGeneration else { return }
             brightness = values.merging(brightness.filter { values[$0.key] != nil && $0.value.method == .dimmer }) { _, dimmer in dimmer }
+            // Dimmer is on by default for displays without hardware control, unless the user turned it off.
+            for display in fresh where brightness[display.id]?.method == .unsupported && !DimmerPreferences.isDisabled(display.identity) {
+                let saved = DimmerPreferences.value(display.identity)
+                brightness[display.id] = BrightnessState(value: saved, method: .dimmer)
+                dimmers.set(display.id, value: saved)
+            }
         } catch { self.error = error.localizedDescription }
     }
     func setBrightness(_ display: DisplayInfo, _ value: Double) {
@@ -86,7 +92,7 @@ import MonitorCore
         let previous = state.value
         state.value = value; brightness[display.id] = state
         if demo { return }
-        if state.method == .dimmer { dimmers.set(display.id, value: value); return }
+        if state.method == .dimmer { dimmers.set(display.id, value: value); DimmerPreferences.setValue(value, display.identity); return }
         writes[display.id]?.cancel()
         let method = state.method, generation = probeGeneration
         writes[display.id] = Task {
@@ -101,10 +107,13 @@ import MonitorCore
         }
     }
     func enableDimmer(_ display: DisplayInfo) {
-        brightness[display.id] = BrightnessState(value: 1, method: .dimmer)
-        if !demo { dimmers.set(display.id, value: 1) }
+        DimmerPreferences.setDisabled(false, display.identity)
+        let saved = DimmerPreferences.value(display.identity)
+        brightness[display.id] = BrightnessState(value: saved, method: .dimmer)
+        if !demo { dimmers.set(display.id, value: saved) }
     }
     func disableDimmer(_ display: DisplayInfo) {
+        DimmerPreferences.setDisabled(true, display.identity)
         dimmers.remove(display.id)
         brightness[display.id] = BrightnessState(method: .unsupported)
         Task { await refresh() }

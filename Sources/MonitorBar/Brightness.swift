@@ -80,3 +80,24 @@ actor BrightnessHardware {
     func remove(_ id: UInt32) { windows.removeValue(forKey: id)?.close(); values.removeValue(forKey: id) }
     func removeAll() { for id in Array(windows.keys) { remove(id) } }
 }
+
+/// Remembers per-display dimmer choices (keyed by display UUID) across launches and reconnects.
+enum DimmerPreferences {
+    private static let disabledKey = "dimmerDisabled", valuesKey = "dimmerValues"
+    static func isDisabled(_ identity: String) -> Bool {
+        (UserDefaults.standard.stringArray(forKey: disabledKey) ?? []).contains(identity)
+    }
+    static func setDisabled(_ disabled: Bool, _ identity: String) {
+        var list = Set(UserDefaults.standard.stringArray(forKey: disabledKey) ?? [])
+        if disabled { list.insert(identity) } else { list.remove(identity) }
+        UserDefaults.standard.set(Array(list), forKey: disabledKey)
+    }
+    static func value(_ identity: String) -> Double {
+        (UserDefaults.standard.dictionary(forKey: valuesKey)?[identity] as? Double) ?? 1
+    }
+    static func setValue(_ value: Double, _ identity: String) {
+        var dict = UserDefaults.standard.dictionary(forKey: valuesKey) ?? [:]
+        dict[identity] = value
+        UserDefaults.standard.set(dict, forKey: valuesKey)
+    }
+}

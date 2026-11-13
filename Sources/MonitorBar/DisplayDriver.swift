@@ -5,12 +5,22 @@ import MonitorCore
 
 @MainActor final class DisplayDriver: DisplayConfiguring {
     func displays() throws -> [DisplayInfo] {
-        var count: UInt32 = 0
-        try check(CGGetOnlineDisplayList(0, nil, &count), "listar monitores")
-        guard count > 0 else { return [] }
-        var ids = [CGDirectDisplayID](repeating: 0, count: Int(count))
-        try check(CGGetOnlineDisplayList(count, &ids, &count), "listar monitores")
-        return ids.prefix(Int(count)).map { id in
+        // Union of online, active and AppKit screens: wireless (AirPlay/Sidecar) displays may be missing from one list.
+        var ids: [CGDirectDisplayID] = []
+        for list in [CGGetOnlineDisplayList, CGGetActiveDisplayList] {
+            var count: UInt32 = 0
+            try check(list(0, nil, &count), "listar monitores")
+            guard count > 0 else { continue }
+            var found = [CGDirectDisplayID](repeating: 0, count: Int(count))
+            try check(list(count, &found, &count), "listar monitores")
+            for id in found.prefix(Int(count)) where !ids.contains(id) { ids.append(id) }
+        }
+        for screen in NSScreen.screens {
+            if let id = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value, !ids.contains(id) { ids.append(id) }
+        }
+        guard !ids.isEmpty else { return [] }
+        let count = ids.count
+        return ids.prefix(count).map { id in
             let screen = NSScreen.screens.first { ($0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == id }
             let details = MBDisplayDetails(id) as? [String: Any]
             let names = details?["DisplayProductName"] as? [String: String]

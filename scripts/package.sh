@@ -11,15 +11,16 @@ architecture="$(uname -m)"
 dmg_path="$PWD/dist/MonitorBar-$version-$architecture-installer.dmg"
 stage="$(mktemp -d "$PWD/.build/package.XXXXXX")"
 app="$stage/MonitorBar.app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Frameworks"
 cp "$binary_dir/MonitorBar" "$app/Contents/MacOS/MonitorBar"
+ditto .build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework "$app/Contents/Frameworks/Sparkle.framework"
 cp Resources/Info.plist "$app/Contents/Info.plist"
 cp README.md THIRD_PARTY_NOTICES.md Resources/LEIA-ME.txt "$app/Contents/Resources/"
 swift scripts/make-icon.swift "$stage"
 iconutil -c iconset "$stage/AppIcon.icns" -o "$stage/Decoded.iconset"
 swift scripts/check-icon.swift "$stage/AppIcon.iconset" "$stage/Decoded.iconset"
 cp "$stage/AppIcon.icns" "$app/Contents/Resources/AppIcon-v2.icns"
-codesign --force --sign - "$app"
+codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 if [ -d dist/MonitorBar.app ]; then
     mv dist/MonitorBar.app "$stage/Previous-MonitorBar.app"
@@ -39,4 +40,23 @@ python3 scripts/finalize-dmg.py "$stage/MonitorBar-hfs.dmg" "$stage/image/.DS_St
 hdiutil convert "$stage/MonitorBar-hfs.dmg" -format UDZO -ov -o "$dmg_path"
 hdiutil verify "$dmg_path"
 shasum -a 256 "$dmg_path"
+# Sparkle appcast: upload dist/appcast.xml AND the dmg to the GitHub release (feed = releases/latest/download/appcast.xml).
+build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' Resources/Info.plist)"
+signature="$(.build/artifacts/sparkle/Sparkle/bin/sign_update "$dmg_path")"
+cat > dist/appcast.xml <<XML
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>MonitorBar</title>
+    <item>
+      <title>Versão $version</title>
+      <pubDate>$(date -u +"%a, %d %b %Y %H:%M:%S +0000")</pubDate>
+      <sparkle:version>$build</sparkle:version>
+      <sparkle:shortVersionString>$version</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure url="https://github.com/jrbatata/monitorbar/releases/download/v$version/$(basename "$dmg_path")" type="application/x-apple-diskimage" $signature/>
+    </item>
+  </channel>
+</rss>
+XML
 printf '\nApp: %s/dist/MonitorBar.app\nDMG: %s\n' "$PWD" "$dmg_path"

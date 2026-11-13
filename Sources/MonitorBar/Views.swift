@@ -33,6 +33,7 @@ private struct MonitorListHeight: PreferenceKey {
 struct QuickPanel: View {
     @ObservedObject var launchAtLogin: LaunchAtLogin
     @ObservedObject var store: MonitorStore
+    var updater: Updater?
     var organize: () -> Void
     @State private var contentHeight: CGFloat = 300
     @State private var availableScreenHeight: CGFloat = 800
@@ -100,6 +101,10 @@ struct QuickPanel: View {
             }.buttonStyle(.plain).padding(14)
             HStack {
                 Button { Task { await store.refresh() } } label: { Image(systemName: "arrow.clockwise") }.help("Atualizar monitores")
+                if let updater {
+                    Button { updater.check() } label: { Image(systemName: "arrow.down.circle") }
+                        .help("Verificar atualizações do MonitorBar").disabled(!updater.canCheck)
+                }
                 Button("Ajustes do macOS") { openDisplaySettings() }
                 Spacer()
                 Toggle("Iniciar com o Mac", isOn: Binding(get: { launchAtLogin.isEnabled }, set: { launchAtLogin.set($0) }))
